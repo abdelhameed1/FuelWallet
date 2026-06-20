@@ -26,28 +26,17 @@ public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
         builder.Property(w => w.RowVersion)
             .IsRowVersion();
 
-      builder.HasData(
-    new Wallet("WLT-1001", "CUST-001", "Ahmed Hassan", "ABC-1234", 500.00m, 300.00m, true)
-    {
-        Id = 1,
-        CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-    },
-    new Wallet("WLT-1002", "CUST-002", "Sara Mostafa", "XYZ-5678", 50.00m, 200.00m, true)
-    {
-        Id = 2,
-        CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-    },
-    new Wallet("WLT-1003", "CUST-003", "Omar Khalil", "DEF-9999", 1000.00m, 100.00m, true)
-    {
-        Id = 3,
-        CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-    },
-    new Wallet("WLT-1004", "CUST-004", "Layla Ibrahim", "GHI-4321", 500.00m, 300.00m, false)
-    {
-        Id = 4,
-        CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-    }
-);
-       
+        var seededAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        builder.HasData(
+            new Wallet("WLT-1001", "CUST-001", "Ahmed Hassan", "ABC-1234", 500.00m, 300.00m, true)
+                { Id = 1, CreatedAt = seededAt },
+            new Wallet("WLT-1002", "CUST-002", "Sara Mostafa", "XYZ-5678", 50.00m, 200.00m, true)
+                { Id = 2, CreatedAt = seededAt },
+            new Wallet("WLT-1003", "CUST-003", "Omar Khalil", "DEF-9999", 1000.00m, 100.00m, true)
+                { Id = 3, CreatedAt = seededAt },
+            new Wallet("WLT-1004", "CUST-004", "Layla Ibrahim", "GHI-4321", 500.00m, 300.00m, false)
+                { Id = 4, CreatedAt = seededAt }
+        );
     }
 }

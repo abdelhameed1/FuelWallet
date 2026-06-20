@@ -1,6 +1,7 @@
 using FuelWallet.Application.Common.Interfaces;
 using FuelWallet.Infrastructure.BackgroundJobs;
 using FuelWallet.Infrastructure.Persistence;
+using FuelWallet.Infrastructure.Persistence.Interceptors;
 using FuelWallet.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -14,8 +15,13 @@ public static class DependencyInjection
     {
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-        builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(connectionString));
+        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddSingleton<AuditableEntityInterceptor>();
+
+        builder.Services.AddDbContext<ApplicationDbContext>((provider, options) =>
+            options
+                .UseSqlServer(connectionString)
+                .AddInterceptors(provider.GetRequiredService<AuditableEntityInterceptor>()));
 
         builder.Services.AddScoped<IApplicationDbContext>(provider =>
             provider.GetRequiredService<ApplicationDbContext>());

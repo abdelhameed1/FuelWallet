@@ -120,7 +120,7 @@ app.MapPost("/api/auth/token", async (LoginCommand command, MediatR.ISender send
 
 // ── Protected ────────────────────────────────────────────────────────────────
 
-app.MapPost("/api/auth/logout", async (HttpContext httpContext, MediatR.ISender sender) =>
+app.MapPost("/api/auth/logout", async (HttpContext httpContext, MediatR.ISender sender, TimeProvider timeProvider) =>
 {
     var jti = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Jti);
     var expClaim = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Exp);
@@ -130,7 +130,7 @@ app.MapPost("/api/auth/logout", async (HttpContext httpContext, MediatR.ISender 
 
     var expiresAt = expClaim != null
         ? DateTimeOffset.FromUnixTimeSeconds(long.Parse(expClaim)).UtcDateTime
-        : DateTime.UtcNow.AddMinutes(15);
+        : timeProvider.GetUtcNow().UtcDateTime.AddMinutes(15);
 
     await sender.Send(new RevokeTokenCommand(jti, expiresAt));
     return Results.Ok(new { message = "Logged out successfully." });
@@ -172,7 +172,7 @@ app.MapGet("/api/wallets/{walletId}/balance", async (
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapPost("/api/dev/reseed-wallets", async (ApplicationDbContext context) =>
+    app.MapPost("/api/dev/reseed-wallets", async (ApplicationDbContext context, TimeProvider timeProvider) =>
     {
         var seedBalances = new Dictionary<string, decimal>
         {
@@ -183,7 +183,7 @@ if (app.Environment.IsDevelopment())
         };
 
         var walletIds = seedBalances.Keys.ToList();
-        var today = DateTime.UtcNow.Date;
+        var today = timeProvider.GetUtcNow().UtcDateTime.Date;
 
         await context.FuelTransactions
             .Where(t => walletIds.Contains(t.WalletId) && t.CreatedAt >= today)

@@ -11,15 +11,18 @@ public class TransactionExpiryService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<TransactionExpiryService> _logger;
+    private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(30);
     private readonly TimeSpan _expiryThreshold = TimeSpan.FromMinutes(2);
 
     public TransactionExpiryService(
         IServiceScopeFactory scopeFactory,
-        ILogger<TransactionExpiryService> logger)
+        ILogger<TransactionExpiryService> logger,
+        TimeProvider timeProvider)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stopToken)
@@ -28,7 +31,9 @@ public class TransactionExpiryService : BackgroundService
         {
             try
             {
-                await ExpireStaleTransactions(stopToken);
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                await ExpireStaleTransactionsAsync(context, stopToken);
             }
             catch (Exception ex)
             {
@@ -39,13 +44,10 @@ public class TransactionExpiryService : BackgroundService
         }
     }
 
-    private async Task ExpireStaleTransactions(CancellationToken cancellationToken)
+    internal async Task ExpireStaleTransactionsAsync(
+        ApplicationDbContext context, CancellationToken cancellationToken)
     {
-        
-        using var scope = _scopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        var cutoff = DateTime.UtcNow - _expiryThreshold;
+        var cutoff = _timeProvider.GetUtcNow().UtcDateTime - _expiryThreshold;
 
         var staleTransactions = await context.FuelTransactions
             .Where(t => t.Status == TransactionStatus.Pending && t.CreatedAt < cutoff)
@@ -55,9 +57,7 @@ public class TransactionExpiryService : BackgroundService
             return;
 
         foreach (var transaction in staleTransactions)
-        {
             transaction.Expire();
-        }
 
         await context.SaveChangesAsync(cancellationToken);
 

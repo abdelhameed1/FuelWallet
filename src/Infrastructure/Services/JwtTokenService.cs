@@ -10,10 +10,12 @@ namespace FuelWallet.Infrastructure.Services;
 public class JwtTokenService : ITokenService
 {
     private readonly IConfiguration _config;
+    private readonly TimeProvider _timeProvider;
 
-    public JwtTokenService(IConfiguration config)
+    public JwtTokenService(IConfiguration config, TimeProvider timeProvider)
     {
         _config = config;
+        _timeProvider = timeProvider;
     }
 
     public string GenerateToken(int userId, string username)
@@ -33,7 +35,7 @@ public class JwtTokenService : ITokenService
             issuer: _config["JwtSettings:Issuer"],
             audience: _config["JwtSettings:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(expiry),
+            expires: _timeProvider.GetUtcNow().UtcDateTime.AddMinutes(expiry),
             signingCredentials: creds
         );
 

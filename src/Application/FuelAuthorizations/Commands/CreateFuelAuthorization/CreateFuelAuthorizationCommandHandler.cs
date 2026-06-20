@@ -2,7 +2,6 @@ using FuelWallet.Application.Common.Exceptions;
 using FuelWallet.Application.Common.Interfaces;
 using FuelWallet.Domain.Entities;
 using FuelWallet.Domain.Enums;
-using FuelWallet.Domain.Exceptions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,13 +12,16 @@ public class CreateFuelAuthorizationCommandHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly IOptimisticConcurrencyExecutor _concurrency;
+    private readonly TimeProvider _timeProvider;
 
     public CreateFuelAuthorizationCommandHandler(
         IApplicationDbContext context,
-        IOptimisticConcurrencyExecutor concurrency)
+        IOptimisticConcurrencyExecutor concurrency,
+        TimeProvider timeProvider)
     {
         _context = context;
         _concurrency = concurrency;
+        _timeProvider = timeProvider;
     }
 
     public async Task<FuelAuthorizationResult> Handle(
@@ -63,7 +65,7 @@ public class CreateFuelAuthorizationCommandHandler
         CreateFuelAuthorizationCommand request,
         CancellationToken cancellationToken)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = _timeProvider.GetUtcNow().UtcDateTime.Date;
         var alreadySpentToday = await _context.FuelTransactions
             .Where(t => t.WalletId == request.WalletId
                      && t.Status == TransactionStatus.Authorized
@@ -71,7 +73,12 @@ public class CreateFuelAuthorizationCommandHandler
             .SumAsync(t => t.AuthorizedAmount ?? 0m, cancellationToken);
 
         var transaction = NewPendingTransaction(request);
-        ApplyBusinessRules(wallet, transaction, request.RequestedAmount, alreadySpentToday);
+
+         var outcome = wallet.Authorize(request.RequestedAmount, alreadySpentToday);
+        if (outcome.Succeeded)
+            transaction.Authorize(request.RequestedAmount);
+        else
+            transaction.Reject(outcome.RejectionMessage!);
 
         _context.FuelTransactions.Add(transaction);
         await _context.SaveChangesAsync(cancellationToken);
@@ -101,25 +108,6 @@ public class CreateFuelAuthorizationCommandHandler
         RequestReference = request.RequestReference,
         Status = TransactionStatus.Pending
     };
-
-    private static void ApplyBusinessRules(
-        Wallet wallet,
-        FuelTransaction transaction,
-        decimal requestedAmount,
-        decimal alreadySpentToday)
-    {
-        try
-        {
-            wallet.EnsureActive();
-            wallet.EnsureWithinDailyLimit(requestedAmount, alreadySpentToday);
-            wallet.Deduct(requestedAmount);
-            transaction.Authorize(requestedAmount);
-        }
-        catch (DomainException ex)
-        {
-            transaction.Reject(ex.Message);
-        }
-    }
 
     private static FuelAuthorizationResult MapToResult(FuelTransaction transaction) => new()
     {
