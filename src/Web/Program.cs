@@ -9,8 +9,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
@@ -34,17 +32,6 @@ builder.Services
             ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
             ValidAudience = builder.Configuration["JwtSettings:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
-        };
-        options.Events = new JwtBearerEvents
-        {
-            OnTokenValidated = async context =>
-            {
-                var jti = context.Principal?.FindFirstValue(JwtRegisteredClaimNames.Jti);
-                if (jti == null) { context.Fail("Token has no JTI."); return; }
-                var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
-                if (await db.RevokedTokens.AnyAsync(t => t.Jti == jti))
-                    context.Fail("Token has been revoked.");
-            }
         };
     });
 builder.Services.AddAuthorization();
@@ -90,6 +77,10 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+
+await ApplyMigrationsAsync(app);
+
 app.UseMiddleware<FuelWallet.Web.Middleware.ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -104,6 +95,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // ── Public ──────────────────────────────────────────────────────────────────
+
+app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
 app.MapPost("/api/auth/register", async (RegisterUserCommand command, MediatR.ISender sender) =>
 {
@@ -184,3 +177,29 @@ if (app.Environment.IsDevelopment())
 }
 
 app.Run();
+
+static async Task ApplyMigrationsAsync(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    if (!db.Database.IsRelational())
+        return;
+
+    const int maxAttempts = 12;
+    for (var attempt = 1; ; attempt++)
+    {
+        try
+        {
+            await db.Database.MigrateAsync();
+            app.Logger.LogInformation("Database migrations applied.");
+            return;
+        }
+        catch (Exception ex) when (attempt < maxAttempts)
+        {
+            app.Logger.LogWarning(ex,
+                "Database not ready (attempt {Attempt}/{Max}); retrying in 5s.", attempt, maxAttempts);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+        }
+    }
+}
