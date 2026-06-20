@@ -1,0 +1,45 @@
+## Build outputs — matches all DDD layers (Domain, Application, Infrastructure, Web, Tests)
+**/bin/
+**/obj/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.rsuser
+
+## Rider / JetBrains
+.idea/
+*.sln.iml
+
+## NuGet
+packages/
+*.nupkg
+*.snupkg
+.nuget/
+project.lock.json
+artifacts/
+
+## Test results
+TestResults/
+*.testlog
+*.coverage
+*.coveragexml
+
+## Publish
+publish/
+PublishProfiles/
+*.pubxml
+*.pubxml.user
+
+## Environment / secrets
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+secrets.json
+
+## OS
+.DS_Store
+Thumbs.db
+desktop.ini
