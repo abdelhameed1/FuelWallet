@@ -4,22 +4,28 @@ namespace FuelWallet.Domain.Entities;
 
 public class Wallet : BaseEntity
 {
-    public string WalletId { get; set; } = default!;
-    public string CustomerId { get; set; } = default!;
-    public string CustomerName { get; set; } = default!;
-    public string VehiclePlate { get; set; } = default!;
+    public string WalletId { get; private set; } = default!;
+    public string CustomerId { get; private set; } = default!;
+    public string CustomerName { get; private set; } = default!;
+    public string VehiclePlate { get; private set; } = default!;
     public decimal Balance { get; private set; }
-    public decimal DailyLimit { get; set; }
-    public bool IsActive { get; set; }
-    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+    public decimal DailyLimit { get; private set; }
+    public bool IsActive { get; private set; }
+    public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
 
-    // Parameterless constructor — required by EF Core itself to materialize entities from the DB
+    // Parameterless constructor — required by EF Core itself to materialize entities from the DB.
     private Wallet() { }
 
-    // Public constructor — the ONLY other way to set an initial Balance
     public Wallet(string walletId, string customerId, string customerName,
         string vehiclePlate, decimal initialBalance, decimal dailyLimit, bool isActive)
     {
+        if (string.IsNullOrWhiteSpace(walletId))
+            throw new DomainException("Wallet id is required.");
+        if (initialBalance < 0)
+            throw new DomainException("Initial balance cannot be negative.");
+        if (dailyLimit < 0)
+            throw new DomainException("Daily limit cannot be negative.");
+
         WalletId = walletId;
         CustomerId = customerId;
         CustomerName = customerName;
@@ -29,27 +35,25 @@ public class Wallet : BaseEntity
         IsActive = isActive;
     }
 
-    public void EnsureActive()
+    
+    public AuthorizationResult Authorize(decimal amount, decimal alreadySpentToday)
     {
         if (!IsActive)
-            throw new WalletInactiveException();
-    }
+            return AuthorizationResult.Rejected(
+                AuthorizationFailureReason.WalletInactive,
+                "Wallet is not active.");
 
-    public void EnsureSufficientBalance(decimal amount)
-    {
-        if (amount > Balance)
-            throw new InsufficientBalanceException();
-    }
-
-    public void EnsureWithinDailyLimit(decimal amount, decimal alreadySpentToday)
-    {
         if (alreadySpentToday + amount > DailyLimit)
-            throw new DailyLimitExceededException();
-    }
+            return AuthorizationResult.Rejected(
+                AuthorizationFailureReason.DailyLimitExceeded,
+                "Requested amount exceeds the wallet's daily limit.");
 
-    public void Deduct(decimal amount)
-    {
-        EnsureSufficientBalance(amount);
+        if (amount > Balance)
+            return AuthorizationResult.Rejected(
+                AuthorizationFailureReason.InsufficientBalance,
+                "Wallet balance is insufficient for this transaction.");
+
         Balance -= amount;
+        return AuthorizationResult.Success();
     }
 }
