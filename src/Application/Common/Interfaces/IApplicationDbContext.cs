@@ -8,7 +8,6 @@ public interface IApplicationDbContext
     DbSet<Wallet> Wallets { get; }
     DbSet<FuelTransaction> FuelTransactions { get; }
     DbSet<User> Users { get; }
-    DbSet<RevokedToken> RevokedTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

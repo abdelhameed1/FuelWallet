@@ -1,6 +1,5 @@
 using FuelWallet.Application.Auth.Commands.Login;
 using FuelWallet.Application.Auth.Commands.Register;
-using FuelWallet.Application.Auth.Commands.RevokeToken;
 using FuelWallet.Application.FuelAuthorizations.Commands.CreateFuelAuthorization;
 using FuelWallet.Application.FuelAuthorizations.Queries.GetTransactionById;
 using FuelWallet.Application.Wallets.Queries.GetWalletBalance;
@@ -119,22 +118,6 @@ app.MapPost("/api/auth/token", async (LoginCommand command, MediatR.ISender send
 }).RequireRateLimiting("auth");
 
 // ── Protected ────────────────────────────────────────────────────────────────
-
-app.MapPost("/api/auth/logout", async (HttpContext httpContext, MediatR.ISender sender, TimeProvider timeProvider) =>
-{
-    var jti = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Jti);
-    var expClaim = httpContext.User.FindFirstValue(JwtRegisteredClaimNames.Exp);
-
-    if (jti == null)
-        return Results.BadRequest(new { error = "Invalid token." });
-
-    var expiresAt = expClaim != null
-        ? DateTimeOffset.FromUnixTimeSeconds(long.Parse(expClaim)).UtcDateTime
-        : timeProvider.GetUtcNow().UtcDateTime.AddMinutes(15);
-
-    await sender.Send(new RevokeTokenCommand(jti, expiresAt));
-    return Results.Ok(new { message = "Logged out successfully." });
-}).RequireAuthorization();
 
 app.MapPost("/api/fuel-authorizations", async (
     CreateFuelAuthorizationCommand command,

@@ -14,7 +14,6 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<FuelTransaction> FuelTransactions => Set<FuelTransaction>();
     public DbSet<User> Users => Set<User>();
-    public DbSet<RevokedToken> RevokedTokens => Set<RevokedToken>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
