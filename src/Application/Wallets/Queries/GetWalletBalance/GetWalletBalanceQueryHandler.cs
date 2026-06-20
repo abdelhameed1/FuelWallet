@@ -21,7 +21,7 @@ public class GetWalletBalanceQueryHandler : IRequestHandler<GetWalletBalanceQuer
             .FirstOrDefaultAsync(w => w.WalletId == request.WalletId, cancellationToken);
 
         if (wallet == null)
-            throw new NotFoundException(nameof(Wallet), request.WalletId);
+            throw new NotFoundException("Wallet", request.WalletId);
 
         return new WalletBalanceDto
         {
