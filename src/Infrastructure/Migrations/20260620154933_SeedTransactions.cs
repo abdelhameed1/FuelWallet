@@ -13,17 +13,25 @@ namespace FuelWallet.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.InsertData(
-                table: "FuelTransactions",
-                columns: new[] { "Id", "AuthorizedAmount", "CreatedAt", "PumpId", "RejectionReason", "RequestReference", "RequestedAmount", "StationId", "Status", "UpdatedAt", "WalletId" },
-                values: new object[,]
-                {
-                    { 1, 100m, new DateTime(2026, 6, 18, 8, 0, 0, 0, DateTimeKind.Utc), 1, null, "SEED-REF-001", 100m, 101, "Authorized", new DateTime(2026, 6, 18, 8, 0, 1, 0, DateTimeKind.Utc), "WLT-1001" },
-                    { 2, 200m, new DateTime(2026, 6, 17, 10, 0, 0, 0, DateTimeKind.Utc), 2, null, "SEED-REF-002", 200m, 102, "Authorized", new DateTime(2026, 6, 17, 10, 0, 1, 0, DateTimeKind.Utc), "WLT-1001" },
-                    { 3, null, new DateTime(2026, 6, 19, 9, 0, 0, 0, DateTimeKind.Utc), 3, "Wallet balance is insufficient for this transaction.", "SEED-REF-003", 300m, 101, "Rejected", new DateTime(2026, 6, 19, 9, 0, 0, 0, DateTimeKind.Utc), "WLT-1002" },
-                    { 4, 80m, new DateTime(2026, 6, 16, 14, 0, 0, 0, DateTimeKind.Utc), 1, null, "SEED-REF-004", 80m, 103, "Authorized", new DateTime(2026, 6, 16, 14, 0, 1, 0, DateTimeKind.Utc), "WLT-1003" },
-                    { 5, null, new DateTime(2026, 6, 15, 11, 0, 0, 0, DateTimeKind.Utc), 2, null, "SEED-REF-005", 50m, 101, "Expired", new DateTime(2026, 6, 15, 11, 2, 0, 0, DateTimeKind.Utc), "WLT-1003" }
-                });
+            migrationBuilder.Sql(@"
+                SET IDENTITY_INSERT [FuelTransactions] ON;
+                IF NOT EXISTS (SELECT 1 FROM [FuelTransactions] WHERE [Id] = 1)
+                    INSERT INTO [FuelTransactions] ([Id],[AuthorizedAmount],[CreatedAt],[PumpId],[RejectionReason],[RequestReference],[RequestedAmount],[StationId],[Status],[UpdatedAt],[WalletId])
+                    VALUES (1, 100.00, '2026-06-18T08:00:00Z', 1, NULL, 'SEED-REF-001', 100.00, 101, 'Authorized', '2026-06-18T08:00:01Z', 'WLT-1001');
+                IF NOT EXISTS (SELECT 1 FROM [FuelTransactions] WHERE [Id] = 2)
+                    INSERT INTO [FuelTransactions] ([Id],[AuthorizedAmount],[CreatedAt],[PumpId],[RejectionReason],[RequestReference],[RequestedAmount],[StationId],[Status],[UpdatedAt],[WalletId])
+                    VALUES (2, 200.00, '2026-06-17T10:00:00Z', 2, NULL, 'SEED-REF-002', 200.00, 102, 'Authorized', '2026-06-17T10:00:01Z', 'WLT-1001');
+                IF NOT EXISTS (SELECT 1 FROM [FuelTransactions] WHERE [Id] = 3)
+                    INSERT INTO [FuelTransactions] ([Id],[AuthorizedAmount],[CreatedAt],[PumpId],[RejectionReason],[RequestReference],[RequestedAmount],[StationId],[Status],[UpdatedAt],[WalletId])
+                    VALUES (3, NULL, '2026-06-19T09:00:00Z', 3, 'Wallet balance is insufficient for this transaction.', 'SEED-REF-003', 300.00, 101, 'Rejected', '2026-06-19T09:00:00Z', 'WLT-1002');
+                IF NOT EXISTS (SELECT 1 FROM [FuelTransactions] WHERE [Id] = 4)
+                    INSERT INTO [FuelTransactions] ([Id],[AuthorizedAmount],[CreatedAt],[PumpId],[RejectionReason],[RequestReference],[RequestedAmount],[StationId],[Status],[UpdatedAt],[WalletId])
+                    VALUES (4, 80.00, '2026-06-16T14:00:00Z', 1, NULL, 'SEED-REF-004', 80.00, 103, 'Authorized', '2026-06-16T14:00:01Z', 'WLT-1003');
+                IF NOT EXISTS (SELECT 1 FROM [FuelTransactions] WHERE [Id] = 5)
+                    INSERT INTO [FuelTransactions] ([Id],[AuthorizedAmount],[CreatedAt],[PumpId],[RejectionReason],[RequestReference],[RequestedAmount],[StationId],[Status],[UpdatedAt],[WalletId])
+                    VALUES (5, NULL, '2026-06-15T11:00:00Z', 2, NULL, 'SEED-REF-005', 50.00, 101, 'Expired', '2026-06-15T11:02:00Z', 'WLT-1003');
+                SET IDENTITY_INSERT [FuelTransactions] OFF;
+            ");
         }
 
         /// <inheritdoc />

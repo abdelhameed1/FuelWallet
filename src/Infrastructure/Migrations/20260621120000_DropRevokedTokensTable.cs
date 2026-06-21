@@ -11,8 +11,7 @@ namespace FuelWallet.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "RevokedTokens");
+            migrationBuilder.Sql("IF OBJECT_ID(N'[RevokedTokens]', N'U') IS NOT NULL DROP TABLE [RevokedTokens];");
         }
 
         /// <inheritdoc />

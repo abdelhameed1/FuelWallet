@@ -57,16 +57,22 @@ namespace FuelWallet.Infrastructure.Migrations
                     table.PrimaryKey("PK_Wallets", x => x.Id);
                 });
 
-            migrationBuilder.InsertData(
-                table: "Wallets",
-                columns: new[] { "Id", "Balance", "CreatedAt", "CustomerId", "CustomerName", "DailyLimit", "IsActive", "UpdatedAt", "VehiclePlate", "WalletId" },
-                values: new object[,]
-                {
-                    { 1, 500.00m, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "CUST-001", "Ahmed Hassan", 300.00m, true, null, "ABC-1234", "WLT-1001" },
-                    { 2, 50.00m, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "CUST-002", "Sara Mostafa", 200.00m, true, null, "XYZ-5678", "WLT-1002" },
-                    { 3, 1000.00m, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "CUST-003", "Omar Khalil", 100.00m, true, null, "DEF-9999", "WLT-1003" },
-                    { 4, 500.00m, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "CUST-004", "Layla Ibrahim", 300.00m, false, null, "GHI-4321", "WLT-1004" }
-                });
+            migrationBuilder.Sql(@"
+                SET IDENTITY_INSERT [Wallets] ON;
+                IF NOT EXISTS (SELECT 1 FROM [Wallets] WHERE [Id] = 1)
+                    INSERT INTO [Wallets] ([Id],[Balance],[CreatedAt],[CustomerId],[CustomerName],[DailyLimit],[IsActive],[UpdatedAt],[VehiclePlate],[WalletId])
+                    VALUES (1, 500.00, '2026-01-01T00:00:00Z', 'CUST-001', 'Ahmed Hassan', 300.00, 1, NULL, 'ABC-1234', 'WLT-1001');
+                IF NOT EXISTS (SELECT 1 FROM [Wallets] WHERE [Id] = 2)
+                    INSERT INTO [Wallets] ([Id],[Balance],[CreatedAt],[CustomerId],[CustomerName],[DailyLimit],[IsActive],[UpdatedAt],[VehiclePlate],[WalletId])
+                    VALUES (2, 50.00, '2026-01-01T00:00:00Z', 'CUST-002', 'Sara Mostafa', 200.00, 1, NULL, 'XYZ-5678', 'WLT-1002');
+                IF NOT EXISTS (SELECT 1 FROM [Wallets] WHERE [Id] = 3)
+                    INSERT INTO [Wallets] ([Id],[Balance],[CreatedAt],[CustomerId],[CustomerName],[DailyLimit],[IsActive],[UpdatedAt],[VehiclePlate],[WalletId])
+                    VALUES (3, 1000.00, '2026-01-01T00:00:00Z', 'CUST-003', 'Omar Khalil', 100.00, 1, NULL, 'DEF-9999', 'WLT-1003');
+                IF NOT EXISTS (SELECT 1 FROM [Wallets] WHERE [Id] = 4)
+                    INSERT INTO [Wallets] ([Id],[Balance],[CreatedAt],[CustomerId],[CustomerName],[DailyLimit],[IsActive],[UpdatedAt],[VehiclePlate],[WalletId])
+                    VALUES (4, 500.00, '2026-01-01T00:00:00Z', 'CUST-004', 'Layla Ibrahim', 300.00, 0, NULL, 'GHI-4321', 'WLT-1004');
+                SET IDENTITY_INSERT [Wallets] OFF;
+            ");
 
             migrationBuilder.CreateIndex(
                 name: "IX_FuelTransactions_RequestReference",

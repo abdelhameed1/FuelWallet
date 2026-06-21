@@ -11,10 +11,13 @@ namespace FuelWallet.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.InsertData(
-                table: "Users",
-                columns: new[] { "Id", "CreatedAt", "PasswordHash", "UpdatedAt", "Username" },
-                values: new object[] { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "$2a$11$lzaqMxWYuz.RUodv.jkjVeOItX/ZbbLbgafajVghbfzEt1BvRAZh6", null, "station-api" });
+            migrationBuilder.Sql(@"
+                SET IDENTITY_INSERT [Users] ON;
+                IF NOT EXISTS (SELECT 1 FROM [Users] WHERE [Id] = 1)
+                    INSERT INTO [Users] ([Id],[CreatedAt],[PasswordHash],[UpdatedAt],[Username])
+                    VALUES (1, '2026-01-01T00:00:00Z', '$2a$11$lzaqMxWYuz.RUodv.jkjVeOItX/ZbbLbgafajVghbfzEt1BvRAZh6', NULL, 'station-api');
+                SET IDENTITY_INSERT [Users] OFF;
+            ");
         }
 
         /// <inheritdoc />
