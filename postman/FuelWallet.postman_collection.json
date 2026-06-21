@@ -1,0 +1,204 @@
+{
+  "info": {
+    "_postman_id": "f0e1d2c3-4b5a-6789-abcd-ef0123456789",
+    "name": "FuelWallet API",
+    "description": "Fuel wallet authorization and transaction processing.\n\nGetting started:\n1. Select the **FuelWallet (Local)** environment (or rely on the collection defaults).\n2. Run **Auth → Get Token** — it stores the JWT in the `token` variable, so every other request is authenticated automatically.\n3. Run **Fuel Authorizations → Authorize (approved)** — it stores the new `transactionId` for the **Get Transaction by ID** request.\n\nDefault base URL is `http://localhost:5000` (Docker). For a local `dotnet run`, change `baseUrl` to `http://localhost:5123`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "username", "value": "station-api" },
+    { "key": "password", "value": "P@ssw0rd@123!" },
+    { "key": "walletId", "value": "WLT-1001" },
+    { "key": "token", "value": "" },
+    { "key": "transactionId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register user",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"new-user\",\n  \"password\": \"P@ssw0rd@123!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Get Token (login)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    pm.environment.set('token', json.token);",
+                  "    console.log('Token saved.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/token", "host": ["{{baseUrl}}"], "path": ["api", "auth", "token"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fuel Authorizations",
+      "item": [
+        {
+          "name": "Authorize (approved)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('Authorized', () => pm.expect(json.status).to.eql('Authorized'));",
+                  "if (json.transactionId) {",
+                  "    pm.collectionVariables.set('transactionId', json.transactionId);",
+                  "    pm.environment.set('transactionId', json.transactionId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletId\": \"WLT-1001\",\n  \"stationId\": 101,\n  \"pumpId\": 1,\n  \"requestedAmount\": 100,\n  \"requestReference\": \"REQ-{{$guid}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/fuel-authorizations", "host": ["{{baseUrl}}"], "path": ["api", "fuel-authorizations"] }
+          }
+        },
+        {
+          "name": "Authorize (rejected — insufficient balance)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Rejected', () => pm.expect(json.status).to.eql('Rejected'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletId\": \"WLT-1002\",\n  \"stationId\": 101,\n  \"pumpId\": 1,\n  \"requestedAmount\": 500,\n  \"requestReference\": \"REQ-{{$guid}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/fuel-authorizations", "host": ["{{baseUrl}}"], "path": ["api", "fuel-authorizations"] }
+          },
+          "description": "WLT-1002 has a balance of 50; requesting 500 is rejected without deducting."
+        },
+        {
+          "name": "Authorize (idempotent — fixed reference)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletId\": \"WLT-1001\",\n  \"stationId\": 101,\n  \"pumpId\": 1,\n  \"requestedAmount\": 25,\n  \"requestReference\": \"DEMO-IDEMPOTENT-001\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/fuel-authorizations", "host": ["{{baseUrl}}"], "path": ["api", "fuel-authorizations"] }
+          },
+          "description": "Send this twice — the fixed requestReference makes the second call return the original result (balance deducted only once)."
+        }
+      ]
+    },
+    {
+      "name": "Wallets",
+      "item": [
+        {
+          "name": "Get wallet balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/wallets/{{walletId}}/balance", "host": ["{{baseUrl}}"], "path": ["api", "wallets", "{{walletId}}", "balance"] }
+          }
+        },
+        {
+          "name": "Get wallet transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/wallets/{{walletId}}/transactions", "host": ["{{baseUrl}}"], "path": ["api", "wallets", "{{walletId}}", "transactions"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Get transaction by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/transactions/{{transactionId}}", "host": ["{{baseUrl}}"], "path": ["api", "transactions", "{{transactionId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dev",
+      "item": [
+        {
+          "name": "Reseed wallets (Development only)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/dev/reseed-wallets", "host": ["{{baseUrl}}"], "path": ["api", "dev", "reseed-wallets"] }
+          },
+          "description": "Resets wallet balances and clears today's transactions. Only registered when ASPNETCORE_ENVIRONMENT=Development."
+        }
+      ]
+    }
+  ]
+}
