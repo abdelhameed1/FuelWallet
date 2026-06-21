@@ -27,8 +27,6 @@ tests/
 └── Application.Tests — xUnit + FluentAssertions, in-memory EF, deterministic clock
 ```
 
-Every non-obvious design choice is documented in **[DECISIONS.md](DECISIONS.md)**.
-
 ## Run with Docker (recommended — one command)
 
 ```bash
@@ -86,6 +84,37 @@ Tokens are stateless and expire on their own (`JwtSettings:ExpiryMinutes`, defau
 | GET  | `/api/wallets/{walletId}/transactions` | ✓ | List a wallet's transactions |
 | GET  | `/api/wallets/{walletId}/balance` | ✓ | Get a wallet's balance |
 | POST | `/api/dev/reseed-wallets` | ✓ | Reset wallet balances to seed values (Development only) |
+
+## Error Responses
+
+Every error flows through `ExceptionHandlingMiddleware` and returns a single, consistent JSON
+shape (camelCase; `errors` is omitted when there's nothing to report). Internal details — entity
+class names, stack traces — are never leaked; unhandled exceptions are logged server-side and
+returned as a generic 500.
+
+```json
+{ "statusCode": 404, "error": "Not Found", "message": "Wallet 'WLT-9999' not found." }
+```
+
+Validation failures add a field-keyed `errors` object:
+
+```json
+{
+  "statusCode": 400,
+  "error": "Validation Failed",
+  "message": "One or more validation errors occurred.",
+  "errors": { "RequestedAmount": ["requested amount must be greater than zero."] }
+}
+```
+
+| Status | `error` | When |
+|--------|---------|------|
+| 400 | Bad Request | Domain rule violation |
+| 400 | Validation Failed | Request fails validation (includes `errors`) |
+| 401 | Unauthorized | Invalid credentials |
+| 404 | Not Found | Unknown wallet or transaction |
+| 409 | Conflict | Duplicate `requestReference` race / conflicting state |
+| 500 | Internal Server Error | Unhandled exception (logged, not leaked) |
 
 ## Postman
 
